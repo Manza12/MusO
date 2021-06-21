@@ -1,4 +1,4 @@
-from Python.Parameters import *
+from Parameters import *
 
 
 def pitch_class2string(pitch_class: int, language: str = LANGUAGE, unicode: bool = True, system: str = 'mixed'):
