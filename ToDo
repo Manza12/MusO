@@ -1,0 +1,3 @@
+- Set duration seconds as a property?
+- Set SamplesSet as a MutableMapping
+- Clarify MIDI parameters as bpm and ticks per beat

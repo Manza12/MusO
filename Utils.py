@@ -1,17 +1,15 @@
 import numpy as np
 
-from typing import List
-
 from Parameters import *
 
 
-def ticks2seconds(ticks: int) -> float:
-    seconds: float = ((ticks / TICKS_PER_BEAT) / (BPM / 60))
+def ticks2seconds(ticks: int, ticks_per_beat: int) -> float:
+    seconds: float = ((ticks / ticks_per_beat) / (BPM / 60))
     return seconds
 
 
-def seconds2ticks(seconds: float) -> int:
-    ticks: int = round(TICKS_PER_BEAT * BPM * seconds / 60)
+def seconds2ticks(seconds: float, ticks_per_beat: int) -> int:
+    ticks: int = round(ticks_per_beat * BPM * seconds / 60)
     return ticks
 
 

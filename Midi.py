@@ -30,9 +30,10 @@ def check_note_off(midi: mid.MidiFile) -> bool:
 
 
 def midi2piece(file_name: str, folder_path: Path = MIDI_PATH) -> PieceMIDI:
-    piece: PieceMIDI = PieceMIDI(file_name)
     file_path: Path = folder_path / Path(file_name + '.mid')
     midi: mid.MidiFile = mid.MidiFile(file_path)
+
+    piece: PieceMIDI = PieceMIDI(file_name, midi.ticks_per_beat)
 
     has_pedal: bool = check_pedal(midi)
     has_note_off: bool = check_note_off(midi)
@@ -50,7 +51,8 @@ def midi2piece(file_name: str, folder_path: Path = MIDI_PATH) -> PieceMIDI:
                             delta_ticks += midi.tracks[0][m_end].time
                             if midi.tracks[0][m_end].note == msg.note and midi.tracks[0][m_end].velocity == 0:
                                 velocity: int = round_to_list(msg.velocity, VELOCITIES_ALLOWED)
-                                note: NoteMIDI = NoteMIDI(msg.note, time_ticks, time_ticks + delta_ticks, velocity)
+                                note: NoteMIDI = NoteMIDI(msg.note, time_ticks, time_ticks + delta_ticks,
+                                                          midi.ticks_per_beat, velocity)
                                 piece.append(note)
                                 break
                             m_end += 1
@@ -66,7 +68,8 @@ def midi2piece(file_name: str, folder_path: Path = MIDI_PATH) -> PieceMIDI:
                             delta_ticks += midi.tracks[0][m_end].time
                             if midi.tracks[0][m_end].note == msg.note and midi.tracks[0][m_end].type == 'note_off':
                                 velocity: int = round_to_list(msg.velocity, VELOCITIES_ALLOWED)
-                                note: NoteMIDI = NoteMIDI(msg.note, time_ticks, time_ticks + delta_ticks, velocity)
+                                note: NoteMIDI = NoteMIDI(msg.note, time_ticks, time_ticks + delta_ticks,
+                                                          midi.ticks_per_beat, velocity)
                                 piece.append(note)
                                 break
                             m_end += 1

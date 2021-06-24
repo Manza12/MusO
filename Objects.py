@@ -4,7 +4,7 @@ import numpy as np
 import collections.abc as abc
 
 from math import gcd
-from typing import Optional, List, Dict
+from typing import Optional
 
 from Utils import pitch_class2string, ticks2seconds, seconds2ticks
 from Parameters import *
@@ -55,7 +55,7 @@ class NoteValue:
 
 class Velocity:
 
-    def __init__(self, midi_velocity: int, quantization: Optional[Dict[int, str]] = VELOCITY2DYNAMIC):
+    def __init__(self, midi_velocity: int, quantization: Optional[Tuple[Tuple[int, str]]] = VELOCITY2DYNAMIC):
         assert type(midi_velocity) == int, 'Parameter midi_velocity should be an integer.'
         assert 0 <= midi_velocity < 128, 'Parameter midi_velocity should be comprised between 0 and 128.'
 
@@ -63,11 +63,13 @@ class Velocity:
             self.quantized: bool = False
             self.midi_velocity: int = midi_velocity
         else:
-            assert midi_velocity in quantization, 'Parameters midi_velocity should be in ' + str(quantization.keys())
+            quantization_dict = dict(quantization)
+            assert midi_velocity in quantization_dict.keys(), \
+                'Parameters midi_velocity (%r) should be in ' % midi_velocity + str(quantization_dict.keys())
 
             self.quantized: bool = True
             self.midi_velocity: int = midi_velocity
-            self.dynamic: str = quantization[midi_velocity]
+            self.dynamic: str = quantization_dict[midi_velocity]
 
     def __str__(self):
         result: str = str(self.midi_velocity)
@@ -78,7 +80,7 @@ class Velocity:
 
 class DurationMIDI:
 
-    def __init__(self, start_ticks: int, end_ticks: int):
+    def __init__(self, start_ticks: int, end_ticks: int, ticks_per_beat: int):
         assert type(start_ticks) == int, 'Parameter start should be an integer.'
         assert type(end_ticks) == int, 'Parameter end should be an integer.'
 
@@ -90,9 +92,9 @@ class DurationMIDI:
         self.duration_ticks: int = end_ticks - start_ticks
 
         # Values in seconds
-        self.start_seconds: float = ticks2seconds(self.start_ticks)
-        self.end_seconds: float = ticks2seconds(self.end_ticks)
-        self.duration_seconds: float = ticks2seconds(self.duration_ticks)
+        self.start_seconds: float = ticks2seconds(self.start_ticks, ticks_per_beat)
+        self.end_seconds: float = ticks2seconds(self.end_ticks, ticks_per_beat)
+        self.duration_seconds: float = ticks2seconds(self.duration_ticks, ticks_per_beat)
 
     def __str__(self, seconds: bool = SHOW_SECONDS, rounding_digits: Optional[int] = None):
         if seconds:
@@ -138,10 +140,10 @@ class Pitch:
 
 class NoteMIDI:
 
-    def __init__(self, midi_number: int, start_ticks: int, end_ticks: int, midi_velocity: int,
-                 quantization: Optional[Dict[int, str]] = VELOCITY2DYNAMIC):
+    def __init__(self, midi_number: int, start_ticks: int, end_ticks: int, ticks_per_beat: int, midi_velocity: int,
+                 quantization: Optional[Tuple[Tuple[int, str]]] = VELOCITY2DYNAMIC):
         self.pitch = Pitch(midi_number)
-        self.duration = DurationMIDI(start_ticks, end_ticks)
+        self.duration = DurationMIDI(start_ticks, end_ticks, ticks_per_beat)
         self.velocity = Velocity(midi_velocity, quantization=quantization)
 
     def __str__(self, rounding_digits: Optional[int] = None):
@@ -151,8 +153,10 @@ class NoteMIDI:
 
 
 class PieceMIDI(abc.MutableSequence):
-    def __init__(self, name: str = None):
+    def __init__(self, name: str, ticks_per_beat: int):
         self.name: str = name
+        self.ticks_per_beat: int = ticks_per_beat
+
         self.duration_ticks: int = 0
         self.duration_seconds: float = 0.0
         self.notes: List[NoteMIDI] = list()
@@ -188,18 +192,20 @@ class PieceMIDI(abc.MutableSequence):
         return self.notes.__getitem__(index)
 
     def sub_piece_ticks(self, start_ticks: int, end_ticks: int) -> PieceMIDI:
-        new_piece = PieceMIDI(name=self.name + "(from " + str(start_ticks) + " ticks to " + str(end_ticks) + " ticks )")
+        new_piece = PieceMIDI(name=self.name + "(from " + str(start_ticks) + " ticks to " + str(end_ticks) + " ticks )",
+                              ticks_per_beat=self.ticks_per_beat)
         for note in self.notes:
             if start_ticks <= note.duration.start_ticks <= end_ticks:
                 new_note = NoteMIDI(note.pitch.midi_number,
                                     note.duration.start_ticks - start_ticks, note.duration.end_ticks - start_ticks,
+                                    self.ticks_per_beat,
                                     note.velocity.midi_velocity)
                 new_piece.append(new_note)
         return new_piece
 
     def sub_piece_seconds(self, start_seconds: float, end_seconds: float) -> PieceMIDI:
-        start_ticks: int = seconds2ticks(start_seconds)
-        end_ticks: int = seconds2ticks(end_seconds)
+        start_ticks: int = seconds2ticks(start_seconds, self.ticks_per_beat)
+        end_ticks: int = seconds2ticks(end_seconds, self.ticks_per_beat)
         new_piece: PieceMIDI = self.sub_piece_ticks(start_ticks, end_ticks)
         return new_piece
 
@@ -225,4 +231,4 @@ class PieceMIDI(abc.MutableSequence):
         # Update length
         if note.duration.end_ticks > self.duration_ticks:
             self.duration_ticks = note.duration.end_ticks
-            self.duration_seconds = ticks2seconds(self.duration_ticks)
+            self.duration_seconds = ticks2seconds(self.duration_ticks, self.ticks_per_beat)
