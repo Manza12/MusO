@@ -223,6 +223,6 @@ class PieceMIDI(abc.MutableSequence):
             raise TypeError("%r should be a Note" % note)
 
         # Update length
-        if note.duration.end_seconds > self.duration_ticks:
+        if note.duration.end_ticks > self.duration_ticks:
             self.duration_ticks = note.duration.end_ticks
             self.duration_seconds = ticks2seconds(self.duration_ticks)
