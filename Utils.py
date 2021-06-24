@@ -1,6 +1,11 @@
 from Parameters import *
 
 
+def ticks2seconds(ticks: int) -> float:
+    seconds: float = ((ticks / TICKS_PER_BEAT) / (BPM / 60))
+    return seconds
+
+
 def pitch_class2string(pitch_class: int, language: str = LANGUAGE, unicode: bool = True, system: str = 'mixed'):
     pitch_class = pitch_class % 12
     language_options = ['english', 'spanish']
