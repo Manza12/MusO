@@ -94,11 +94,16 @@ class DurationMIDI:
         self.end_seconds: float = ticks2seconds(self.end_ticks)
         self.duration_seconds: float = ticks2seconds(self.duration_ticks)
 
-    def __str__(self, seconds: bool = SHOW_SECONDS):
+    def __str__(self, seconds: bool = SHOW_SECONDS, rounding_digits: Optional[int] = None):
         if seconds:
-            return "[" + str(self.start_seconds) + "s" + ", " \
-                   + str(self.end_seconds) + "s" + "]" + " (" \
-                   + str(self.duration_seconds) + "s" + ")"
+            if rounding_digits is None:
+                return "[" + str(self.start_seconds) + "s" + ", " \
+                       + str(self.end_seconds) + "s" + "]" + " (" \
+                       + str(self.duration_seconds) + "s" + ")"
+            else:
+                return "[" + str(round(self.start_seconds, rounding_digits)) + "s" + ", " \
+                       + str(round(self.end_seconds, rounding_digits)) + "s" + "]" + " (" \
+                       + str(round(self.duration_seconds, rounding_digits)) + "s" + ")"
         else:
             return "[" + str(self.start_ticks) + " ticks" + ", " \
                    + str(self.end_ticks) + " ticks" + "]" + " (" \
@@ -139,11 +144,13 @@ class NoteMIDI:
         self.duration = DurationMIDI(start_ticks, end_ticks)
         self.velocity = Velocity(midi_velocity, quantization=quantization)
 
-    def __str__(self):
-        return str(self.pitch) + ", " + str(self.duration) + ", " + str(self.velocity)
+    def __str__(self, rounding_digits: Optional[int] = None):
+        return str(self.pitch) + ", " \
+               + self.duration.__str__(rounding_digits=rounding_digits) \
+               + ", " + str(self.velocity)
 
 
-class PieceMIDI(abc.MutableSequence[NoteMIDI]):
+class PieceMIDI(abc.MutableSequence):
     def __init__(self, name: str = None):
         self.name: str = name
         self.duration_ticks: int = 0
@@ -182,7 +189,7 @@ class PieceMIDI(abc.MutableSequence[NoteMIDI]):
 
     def sub_piece_ticks(self, start_ticks: int, end_ticks: int) -> PieceMIDI:
         new_piece = PieceMIDI(name=self.name + "(from " + str(start_ticks) + " ticks to " + str(end_ticks) + " ticks )")
-        for note in self:
+        for note in self.notes:
             if start_ticks <= note.duration.start_ticks <= end_ticks:
                 new_note = NoteMIDI(note.pitch.midi_number,
                                     note.duration.start_ticks - start_ticks, note.duration.end_ticks - start_ticks,
@@ -197,8 +204,7 @@ class PieceMIDI(abc.MutableSequence[NoteMIDI]):
         return new_piece
 
     def __str__(self) -> str:
-        result = ""
-        result += "Piece: "
+        result = "Piece: "
 
         if self.name:
             result += self.name + "\n"
@@ -207,7 +213,7 @@ class PieceMIDI(abc.MutableSequence[NoteMIDI]):
 
         result += "Notes:\n"
         for i in range(len(self)):
-            result += self[i].__str__() + "\n"
+            result += self[i].__str__(rounding_digits=3) + "\n"
 
         return result
 

@@ -1,3 +1,7 @@
+import numpy as np
+
+from typing import List
+
 from Parameters import *
 
 
@@ -7,8 +11,15 @@ def ticks2seconds(ticks: int) -> float:
 
 
 def seconds2ticks(seconds: float) -> int:
-    ticks: int = int(TICKS_PER_BEAT * BPM * seconds / 60)
+    ticks: int = round(TICKS_PER_BEAT * BPM * seconds / 60)
     return ticks
+
+
+def round_to_list(value: int, list_values: List[int]) -> int:
+    diffs: np.ndarray = np.abs(np.array(value, dtype=np.int16) - np.array(list_values, dtype=np.int16))
+    index = np.argmin(diffs)
+    rounded_value: int = list_values[index]
+    return rounded_value
 
 
 def pitch_class2string(pitch_class: int, language: str = LANGUAGE, unicode: bool = True, system: str = 'mixed'):
